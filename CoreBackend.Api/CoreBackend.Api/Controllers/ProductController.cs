@@ -50,7 +50,7 @@ namespace CoreBackend.Api.Controllers
             // 手动映射，后期改为AutoMapper
             var newProduct = new Product
             {
-                Id = ++maxId,
+                Id = ++maxId ,
                 Name = product.Name,
                 Price = product.Price
             };
