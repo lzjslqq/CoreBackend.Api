@@ -7,6 +7,8 @@ using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using NLog.Web;
+using NLog;
 
 namespace CoreBackend.Api
 {
@@ -14,7 +16,17 @@ namespace CoreBackend.Api
     {
         public static void Main(string[] args)
         {
-            BuildWebHost(args).Run();
+            var logger = LogManager.GetCurrentClassLogger();
+            try
+            {
+                logger.Debug("init main");
+                BuildWebHost(args).Run();
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, "Stopped program because of exception");
+                throw;
+            }
         }
 
         /// <summary>
@@ -30,6 +42,7 @@ namespace CoreBackend.Api
         public static IWebHost BuildWebHost(string[] args) =>
             WebHost.CreateDefaultBuilder(args)
                 .UseStartup<Startup>()
+                .UseNLog() // NLog: setup NLog for Dependency injection
                 .Build();
 
 

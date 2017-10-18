@@ -8,11 +8,22 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json.Serialization;
 using Microsoft.AspNetCore.Mvc.Formatters;
+using Microsoft.Extensions.Logging;
+using NLog.Extensions.Logging;
+using NLog.Web;
+using CoreBackend.Api.Services;
+using Microsoft.Extensions.Configuration;
 
 namespace CoreBackend.Api
 {
     public class Startup
     {
+        public static IConfiguration Configuration { get; private set; }
+        public Startup(IConfiguration configuration)
+        {
+            Configuration = configuration;
+        }
+
         // This method gets called by the runtime. Use this method to add services to the container.
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         // ConfigureServices方法是用来把services(各种服务, 例如identity, ef, mvc等等包括第三方的, 或者自己写的)加入(register)到container(asp.net core的容器)中去, 并配置这些services. 
@@ -37,6 +48,12 @@ namespace CoreBackend.Api
                     resolver.NamingStrategy = null;
                 }
             });
+
+#if DEBUG
+            services.AddTransient<IMailService, LocalMailService>();
+#else
+            services.AddTransient<IMailService, CloudMailService>();
+#endif
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -44,6 +61,8 @@ namespace CoreBackend.Api
         // 几个方法的调用顺序: Main -> ConfigureServices -> Configure
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
+            //loggerFactory.AddNLog();
+            env.ConfigureNLog("nlog.config");
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();

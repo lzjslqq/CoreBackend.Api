@@ -2,6 +2,8 @@
 using CoreBackend.Api.Services;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+using System;
 using System.Linq;
 
 namespace CoreBackend.Api.Controllers
@@ -9,12 +11,24 @@ namespace CoreBackend.Api.Controllers
     [Route("api/[controller]")]
     public class ProductController : Controller
     {
+        // Logger是asp.net core 的内置service，所以我们就不需要在ConfigureService里面注册.
+        // Container可以直接提供一个ILogger<T>的实例
+        private readonly ILogger<ProductController> _logger;
+
+        private readonly IMailService _mailService;
+
+        public ProductController(ILogger<ProductController> logger, IMailService mailService)
+        {
+            _logger = logger;
+            _mailService = mailService;
+        } 
+
         [HttpGet("all")]
         [Route("[action]")]
         public IActionResult GetProducts()
         {
             var result = Ok(ProductService.Current.Products);
-
+           
             return result;
         }
 
@@ -22,13 +36,22 @@ namespace CoreBackend.Api.Controllers
         [HttpGet("{id:int}",Name = "GetProduct")]
         public IActionResult GetProduct(int id)
         {
-            var result = ProductService.Current.Products.SingleOrDefault(p => p.Id == id);
-            if (result == null)
+            try
             {
-                return NotFound();
-            }
+                var result = ProductService.Current.Products.SingleOrDefault(p => p.Id == id);
+                if (result == null)
+                {
+                    _logger.LogInformation($"没有找到Id为{id}的产品！");
+                    return NotFound();
+                }
 
-            return Ok(result);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogCritical($"查找Id为{id}的产品时出现了错误!!", ex);
+                return StatusCode(500, "处理请求的时候发生了错误！");
+            }
         }
 
         [HttpPost(Name = "CreateProduct")]
@@ -157,6 +180,7 @@ namespace CoreBackend.Api.Controllers
                 return NotFound();
             }
             ProductService.Current.Products.Remove(model);
+            _mailService.Send("Product has been deleted", $"id 为{id}的产品被删除了");
             return NoContent();
         }
     }
