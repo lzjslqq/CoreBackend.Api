@@ -13,6 +13,8 @@ using NLog.Extensions.Logging;
 using NLog.Web;
 using CoreBackend.Api.Services;
 using Microsoft.Extensions.Configuration;
+using CoreBackend.Api.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace CoreBackend.Api
 {
@@ -49,6 +51,8 @@ namespace CoreBackend.Api
                 }
             });
 
+            var connectionString = Configuration["connectionStrings:productionInfoDbConnectionString"];
+            services.AddDbContext<MyContext>( o => o.UseSqlServer( connectionString ) );
 #if DEBUG
             services.AddTransient<IMailService, LocalMailService>();
 #else
@@ -59,7 +63,7 @@ namespace CoreBackend.Api
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         // Configure方法是asp.net core程序用来具体指定如何处理每个http请求的
         // 几个方法的调用顺序: Main -> ConfigureServices -> Configure
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+        public void Configure(IApplicationBuilder app, IHostingEnvironment env, MyContext myContext)
         {
             //loggerFactory.AddNLog();
             env.ConfigureNLog("nlog.config");
@@ -71,6 +75,8 @@ namespace CoreBackend.Api
             {
                 app.UseExceptionHandler();
             }
+
+            myContext.EnsureSeedDataForContext();
 
             app.UseStatusCodePages();
 

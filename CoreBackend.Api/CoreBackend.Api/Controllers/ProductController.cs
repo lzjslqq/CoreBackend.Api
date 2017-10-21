@@ -71,7 +71,7 @@ namespace CoreBackend.Api.Controllers
 
             var maxId = ProductService.Current.Products.Max(p => p.Id);
             // 手动映射，后期改为AutoMapper
-            var newProduct = new Product
+            var newProduct = new ProductDto
             {
                 Id = ++maxId ,
                 Name = product.Name,
