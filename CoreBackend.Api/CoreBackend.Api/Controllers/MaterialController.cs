@@ -1,41 +1,49 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using AutoMapper;
+using CoreBackend.Api.Dto;
+using CoreBackend.Api.Repositories;
 using Microsoft.AspNetCore.Mvc;
-using CoreBackend.Api.Services;
+using System.Collections.Generic;
 
 namespace CoreBackend.Api.Controllers
 {
     [Route("api/product")]
     public class MaterialController : Controller
     {
-        [HttpGet("{productid}/materials")]
+        private readonly IProductRepository _productRepository;
+        public MaterialController(IProductRepository productRepository)
+        {
+            _productRepository = productRepository;
+        }
+        [HttpGet("{productId}/materials")]
         public IActionResult GetMaterials (int productId)
         {
-            var product = ProductService.Current.Products.SingleOrDefault(p => p.Id == productId);
-            if (product == null)
+            bool product = _productRepository.ProductExist(productId);
+            if (!product)
             {
                 return NotFound();
             }
-            return Ok(product.Materials);
+            var materials = _productRepository.GetMaterialsForProduct(productId);
+            var results = Mapper.Map<IEnumerable<MaterialDto>>(materials);
+
+            return Ok(results);
         }
 
         [HttpGet("{productid}/material/{id}")]
         public IActionResult GetMaterial(int productId,int id)
         {
-            var product = ProductService.Current.Products.SingleOrDefault(p => p.Id == productId);
-            if (product == null)
+            var product = _productRepository.ProductExist(productId);
+            if (!product)
+            {
+                return NotFound();
+            }
+            var material = _productRepository.GetMaterialForProduct(productId, id);
+            if (material == null)
             {
                 return NotFound();
             }
 
-            var material = product.Materials.SingleOrDefault(m => m.Id == id);
-            if(material==null)
-            {
-                return NotFound();
-            }
-            return Ok(material);
+            var result = Mapper.Map<MaterialDto>(material);
+            return Ok(result);
         }
     }
 }

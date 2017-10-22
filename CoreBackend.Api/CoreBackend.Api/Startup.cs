@@ -1,20 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using CoreBackend.Api.Dto;
+using CoreBackend.Api.Entities;
+using CoreBackend.Api.Repositories;
+using CoreBackend.Api.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.Formatters;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json.Serialization;
-using Microsoft.AspNetCore.Mvc.Formatters;
-using Microsoft.Extensions.Logging;
 using NLog.Extensions.Logging;
 using NLog.Web;
-using CoreBackend.Api.Services;
-using Microsoft.Extensions.Configuration;
-using CoreBackend.Api.Entities;
-using Microsoft.EntityFrameworkCore;
 
 namespace CoreBackend.Api
 {
@@ -52,7 +48,8 @@ namespace CoreBackend.Api
             });
 
             var connectionString = Configuration["connectionStrings:productionInfoDbConnectionString"];
-            services.AddDbContext<MyContext>( o => o.UseSqlServer( connectionString ) );
+            services.AddDbContext<MyContext>(o => o.UseSqlServer(connectionString));
+            services.AddScoped<IProductRepository, ProductRepository>();// 每个请求生成一个实例
 #if DEBUG
             services.AddTransient<IMailService, LocalMailService>();
 #else
@@ -75,10 +72,21 @@ namespace CoreBackend.Api
             {
                 app.UseExceptionHandler();
             }
-
+            // 向数据库中添加种子数据
             myContext.EnsureSeedDataForContext();
 
             app.UseStatusCodePages();
+
+            // 添加automapper映射
+            AutoMapper.Mapper.Initialize(config =>
+            {
+                config.CreateMap<Product, ProductWithoutMaterialDto>();
+                config.CreateMap<Product, ProductDto>();
+                config.CreateMap<Material, MaterialDto>();
+                config.CreateMap<ProductCreation, Product>();
+                config.CreateMap<ProductModification, Product>();
+                config.CreateMap<Product, ProductModification>();
+            });
 
             // 在异常处理中间件后再调用mvc
             app.UseMvc();
